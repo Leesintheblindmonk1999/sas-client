@@ -1,0 +1,9 @@
+In pyproject.toml, change:
+
+version = "0.1.0"
+
+to:
+
+version = "0.2.0"
+
+No new dependencies are needed.
