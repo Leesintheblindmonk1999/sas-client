@@ -40,7 +40,8 @@ The client is designed for:
 - hallucination and semantic rupture auditing;
 - CLI-based testing and debugging;
 - self-hosted SAS deployments;
-- public hosted API usage.
+- public hosted API usage;
+- fast onboarding through terminal-based Free API key requests.
 
 ---
 
@@ -74,7 +75,45 @@ pip install -e .[dev]
 
 ---
 
-## Quick Start
+## Fast Start
+
+Request a personal Free API key directly from the CLI:
+
+```bash
+sas request-key --email you@example.com --name "Your Name"
+```
+
+After receiving your key by email:
+
+```bash
+export SAS_API_KEY="sas_free_xxxxxxxxxxxxxxxxxxxxx"
+sas whoami
+```
+
+Run a structural coherence diff:
+
+```bash
+sas diff \
+  "The Eiffel Tower is located in Paris, France, and was built in 1889." \
+  "The Eiffel Tower is located in Berlin, Germany, and was built in 1950."
+```
+
+PowerShell:
+
+```powershell
+$env:SAS_API_KEY="sas_free_xxxxxxxxxxxxxxxxxxxxx"
+sas whoami
+```
+
+The client also supports `SAS_KEY` as an alternative environment variable:
+
+```bash
+export SAS_KEY="sas_free_xxxxxxxxxxxxxxxxxxxxx"
+```
+
+---
+
+## Python Quick Start
 
 ```python
 from sas_client import SASClient
@@ -83,7 +122,7 @@ client = SASClient(api_key="YOUR_API_KEY")
 
 result = client.diff(
     text_a="Python is a programming language used for data analysis.",
-    text_b="A python is a large tropical snake."
+    text_b="A python is a large tropical snake.",
 )
 
 print(result["isi"])
@@ -98,8 +137,13 @@ Typical output fields include:
   "isi": 0.0,
   "kappa_d": 0.56,
   "verdict": "MANIFOLD_RUPTURE",
-  "detected_hallucination": true,
-  "fired_modules": []
+  "manipulation_alert": {
+    "triggered": false,
+    "sources": []
+  },
+  "evidence": {
+    "fired_modules": []
+  }
 }
 ```
 
@@ -109,7 +153,39 @@ Typical output fields include:
 
 Protected endpoints require an API key.
 
-### Option 1 — Use an existing key
+### Option 1 — Request a Free hosted API key from the CLI
+
+```bash
+sas request-key --email your@email.com --name "Your Name"
+```
+
+The API key is generated and delivered by email automatically.
+
+Free tier default:
+
+```text
+50 requests/day
+```
+
+Request limit:
+
+```text
+1 Free key request per email per day
+```
+
+---
+
+### Option 2 — Request a Free hosted API key with curl
+
+```bash
+curl -X POST https://sas-api.onrender.com/public/request-key \
+  -H "Content-Type: application/json" \
+  -d '{"email": "your@email.com", "name": "Your Name"}'
+```
+
+---
+
+### Option 3 — Use an existing key
 
 Pass the key directly:
 
@@ -117,10 +193,16 @@ Pass the key directly:
 client = SASClient(api_key="YOUR_API_KEY")
 ```
 
-Or use the environment variable:
+Or use an environment variable:
 
 ```bash
 export SAS_API_KEY="YOUR_API_KEY"
+```
+
+Alternative:
+
+```bash
+export SAS_KEY="YOUR_API_KEY"
 ```
 
 Windows PowerShell:
@@ -139,33 +221,7 @@ client = SASClient()
 
 ---
 
-### Option 2 — Request a Free hosted API key
-
-The hosted SAS API supports automatic Free key generation:
-
-```bash
-curl -X POST https://sas-api.onrender.com/public/request-key \
-  -H "Content-Type: application/json" \
-  -d '{"email": "your@email.com", "name": "Your Name"}'
-```
-
-The API key is generated and delivered by email automatically.
-
-Free tier default:
-
-```text
-50 requests/day
-```
-
-Limit:
-
-```text
-1 Free key per email per day
-```
-
----
-
-### Option 3 — Pro key through payment automation
+### Option 4 — Pro key through payment automation
 
 Hosted Pro access is connected to payment automation through:
 
@@ -194,7 +250,7 @@ from sas_client import SASClient
 
 client = SASClient(
     api_key="YOUR_API_KEY",
-    base_url="https://your-sas-instance.example.com"
+    base_url="https://your-sas-instance.example.com",
 )
 ```
 
@@ -208,36 +264,59 @@ sas --base-url https://your-sas-instance.example.com health
 
 ## Python Usage
 
-### Health
+### Public endpoints
 
 ```python
 from sas_client import SASClient
 
 client = SASClient()
+
 print(client.health())
-```
-
-### Readiness
-
-```python
-from sas_client import SASClient
-
-client = SASClient()
 print(client.readyz())
-```
-
-### Public stats and activity
-
-```python
-from sas_client import SASClient
-
-client = SASClient()
-
 print(client.public_stats())
 print(client.public_activity(limit=10))
 ```
 
-These public endpoints do not require an API key.
+### Public demo audit, no API key required
+
+```python
+from sas_client import SASClient
+
+client = SASClient()
+
+result = client.demo_audit(
+    source="The Eiffel Tower is located in Paris, France, and was built in 1889.",
+    response="The Eiffel Tower is located in Berlin, Germany, and was built in 1950.",
+)
+
+print(result["isi"])
+print(result["verdict"])
+```
+
+### Request a Free API key
+
+```python
+from sas_client import SASClient
+
+client = SASClient()
+
+result = client.request_key(
+    email="your@email.com",
+    name="Your Name",
+)
+
+print(result)
+```
+
+### Current account / plan
+
+```python
+from sas_client import SASClient
+
+client = SASClient(api_key="YOUR_API_KEY")
+
+print(client.whoami())
+```
 
 ### Audit one text
 
@@ -262,7 +341,7 @@ client = SASClient(api_key="YOUR_API_KEY")
 
 result = client.diff(
     text_a="The Eiffel Tower is located in Paris, France.",
-    text_b="The Eiffel Tower is located in Berlin, Germany."
+    text_b="The Eiffel Tower is located in Berlin, Germany.",
 )
 
 print(result["isi"])
@@ -281,6 +360,15 @@ result = client.chat("Explain κD = 0.56 in one paragraph.")
 print(result)
 ```
 
+### Static plan information
+
+```python
+from sas_client import SASClient
+
+client = SASClient()
+print(client.plans())
+```
+
 ---
 
 ## CLI Usage
@@ -294,13 +382,29 @@ sas health
 sas readyz
 sas public-stats
 sas public-activity --limit 10
+sas plans
 ```
+
+### Public onboarding commands
+
+```bash
+sas request-key --email your@email.com --name "Your Name"
+```
+
+```bash
+sas demo-audit \
+  "The Eiffel Tower is located in Paris, France, and was built in 1889." \
+  "The Eiffel Tower is located in Berlin, Germany, and was built in 1950."
+```
+
+These commands do not require an API key.
 
 ### Authenticated commands
 
 For authenticated endpoints, pass `--api-key` before the subcommand:
 
 ```bash
+sas --api-key YOUR_API_KEY whoami
 sas --api-key YOUR_API_KEY audit "Paris is the capital of France. The Eiffel Tower is located in Berlin."
 sas --api-key YOUR_API_KEY diff "Python is a programming language." "A python is a snake."
 sas --api-key YOUR_API_KEY chat "Explain κD = 0.56 in one paragraph."
@@ -311,7 +415,16 @@ Or use `SAS_API_KEY`:
 ```bash
 export SAS_API_KEY="YOUR_API_KEY"
 
+sas whoami
 sas diff "Python is a programming language." "A python is a snake."
+```
+
+Or use `SAS_KEY`:
+
+```bash
+export SAS_KEY="YOUR_API_KEY"
+
+sas whoami
 ```
 
 Windows PowerShell:
@@ -319,6 +432,7 @@ Windows PowerShell:
 ```powershell
 $env:SAS_API_KEY="YOUR_API_KEY"
 
+sas whoami
 sas diff "Python is a programming language." "A python is a snake."
 ```
 
@@ -339,110 +453,56 @@ sas --base-url http://localhost:8000 readyz
 | Readiness check | `GET /readyz` | `client.readyz()` | `sas readyz` |
 | Public stats | `GET /public/stats` | `client.public_stats()` | `sas public-stats` |
 | Public activity | `GET /public/activity` | `client.public_activity(limit=10)` | `sas public-activity --limit 10` |
+| Public demo audit | `POST /public/demo/audit` | `client.demo_audit(source, response)` | `sas demo-audit "source" "response"` |
+| Free API key request | `POST /public/request-key` | `client.request_key(email, name=None)` | `sas request-key --email you@example.com` |
+| Current account / plan | `GET /v1/whoami` | `client.whoami()` | `sas whoami` |
 | Single-text audit | `POST /v1/audit` | `client.audit(text)` | `sas audit "text"` |
 | Source-vs-response diff | `POST /v1/diff` | `client.diff(text_a, text_b)` | `sas diff "A" "B"` |
 | Chat endpoint | `POST /v1/chat` | `client.chat(message)` | `sas chat "message"` |
+| Static plan info | local client helper | `client.plans()` | `sas plans` |
 
 ---
 
-## Hosted API Features Not Yet Wrapped as First-Class Client Commands
+## Module Layout
 
-The hosted SAS API may expose additional public or billing-related endpoints such as:
-
-| Hosted capability | Endpoint | Current recommendation |
-|---|---|---|
-| Public demo audit | `POST /public/demo/audit` | Use `curl` or direct HTTP until wrapped |
-| Free key request | `POST /public/request-key` | Use `curl` until wrapped |
-| Current account / plan | `GET /v1/whoami` | Use `curl` until wrapped |
-| Polar payment webhook | hosted billing endpoint | Server-side only |
-| Mercado Pago webhook | hosted billing endpoint | Server-side only |
-
-Example:
-
-```bash
-curl -X POST https://sas-api.onrender.com/public/demo/audit \
-  -H "Content-Type: application/json" \
-  -d '{
-    "source": "The Eiffel Tower is located in Paris, France.",
-    "response": "The Eiffel Tower is located in Berlin, Germany."
-  }'
-```
-
-Example:
-
-```bash
-curl https://sas-api.onrender.com/v1/whoami \
-  -H "X-API-Key: sas_xxxxxxxxxxxxxxxxxxxxx"
-```
-
----
-
-## Recommended Next Client Commands
-
-These are recommended improvements for the next `sas-client` release.
-
-### Proposed Python methods
-
-```python
-client.demo_audit(source, response)
-client.request_key(email, name=None)
-client.whoami()
-client.plans()
-```
-
-### Proposed CLI commands
-
-```bash
-sas demo-audit "source text" "response text"
-sas request-key --email your@email.com --name "Your Name"
-sas whoami
-sas plans
-```
-
-### Proposed convenience modules
+Current convenience modules:
 
 ```text
-sas_client.auth       # API key helpers, env loading, whoami
-sas_client.public     # public demo, stats, activity, readiness
-sas_client.billing    # hosted-plan helpers, Polar/Mercado Pago docs wrappers
-sas_client.models     # typed response models / dataclasses
-sas_client.errors     # typed exceptions for API errors
+sas_client.client       # Main SASClient class and request handling
+sas_client.public       # Public no-key endpoints: demo, stats, activity, request-key
+sas_client.auth         # API key resolution and authenticated helpers
+sas_client.exceptions   # Typed client/API exceptions
+sas_client.cli          # Command-line interface
 ```
 
-Suggested behavior:
-
-- `demo-audit` should not require API key.
-- `request-key` should not require API key.
-- `whoami` should require API key.
-- Billing webhooks should remain server-side and should not be exposed as client-side payment verification commands.
-- The client should avoid storing keys locally by default.
-- Optional local config should be explicit and documented.
+No third-party runtime dependencies are required. The client uses the Python standard library.
 
 ---
 
 ## Error Handling
 
-Recommended client behavior:
+Python:
 
 ```python
-from sas_client import SASClient, SASClientError
+from sas_client import SASClient
+from sas_client import SASClientError, SASRateLimitError, SASAuthenticationError
 
 client = SASClient(api_key="YOUR_API_KEY")
 
 try:
-    result = client.diff("source", "response")
+    result = client.diff(
+        text_a="source",
+        text_b="response",
+    )
+except SASRateLimitError as exc:
+    print("Rate limit:", exc)
+except SASAuthenticationError as exc:
+    print("Authentication error:", exc)
 except SASClientError as exc:
-    print(exc)
+    print("SAS client error:", exc)
 ```
 
-Recommended CLI behavior:
-
-```bash
-sas diff "source" "response"
-echo $?
-```
-
-Exit code guidance for future CLI hardening:
+CLI exit codes:
 
 | Exit code | Meaning |
 |---:|---|
@@ -452,7 +512,13 @@ Exit code guidance for future CLI hardening:
 | `3` | Authentication or plan error |
 | `4` | Rate limit exceeded |
 | `5` | Server unavailable |
-| `6` | Network error |
+
+Example:
+
+```bash
+sas whoami
+echo $?
+```
 
 ---
 
@@ -469,6 +535,7 @@ For hosted endpoints:
 - API keys should be kept private.
 - Do not paste API keys into public logs, screenshots, GitHub issues, or shell history.
 - Public stats and public activity are designed to expose aggregated or anonymized operational metadata only.
+- Public demo text is handled by the hosted API according to the hosted service policy.
 - Payment automation through Polar or Mercado Pago is part of the hosted SAS service, not the local client package.
 
 ---
@@ -504,6 +571,23 @@ Check package metadata:
 ```bash
 twine check dist/*
 ```
+
+---
+
+## Release Notes for v0.2.0
+
+This release adds first-class onboarding and public endpoint support:
+
+- `sas request-key`
+- `sas demo-audit`
+- `sas whoami`
+- `sas plans`
+- `client.request_key(...)`
+- `client.demo_audit(...)`
+- `client.whoami()`
+- `client.plans()`
+- `SAS_KEY` fallback support in addition to `SAS_API_KEY`
+- typed exceptions for auth, rate limit, server, connection and timeout errors
 
 ---
 
@@ -560,7 +644,8 @@ El cliente está diseñado para:
 - auditoría de alucinaciones y ruptura semántica;
 - pruebas y debugging desde CLI;
 - despliegues SAS autoalojados;
-- uso de la API pública alojada.
+- uso de la API pública alojada;
+- onboarding rápido mediante solicitud de Free API key desde terminal.
 
 ---
 
@@ -596,6 +681,44 @@ pip install -e .[dev]
 
 ## Inicio rápido
 
+Pedí una API key Free personal desde la CLI:
+
+```bash
+sas request-key --email you@example.com --name "Tu Nombre"
+```
+
+Cuando recibas la key por email:
+
+```bash
+export SAS_API_KEY="sas_free_xxxxxxxxxxxxxxxxxxxxx"
+sas whoami
+```
+
+Ejecutá un diff de coherencia estructural:
+
+```bash
+sas diff \
+  "The Eiffel Tower is located in Paris, France, and was built in 1889." \
+  "The Eiffel Tower is located in Berlin, Germany, and was built in 1950."
+```
+
+PowerShell:
+
+```powershell
+$env:SAS_API_KEY="sas_free_xxxxxxxxxxxxxxxxxxxxx"
+sas whoami
+```
+
+El cliente también acepta `SAS_KEY` como variable alternativa:
+
+```bash
+export SAS_KEY="sas_free_xxxxxxxxxxxxxxxxxxxxx"
+```
+
+---
+
+## Inicio rápido desde Python
+
 ```python
 from sas_client import SASClient
 
@@ -603,7 +726,7 @@ client = SASClient(api_key="YOUR_API_KEY")
 
 result = client.diff(
     text_a="Python is a programming language used for data analysis.",
-    text_b="A python is a large tropical snake."
+    text_b="A python is a large tropical snake.",
 )
 
 print(result["isi"])
@@ -618,8 +741,13 @@ Campos típicos de salida:
   "isi": 0.0,
   "kappa_d": 0.56,
   "verdict": "MANIFOLD_RUPTURE",
-  "detected_hallucination": true,
-  "fired_modules": []
+  "manipulation_alert": {
+    "triggered": false,
+    "sources": []
+  },
+  "evidence": {
+    "fired_modules": []
+  }
 }
 ```
 
@@ -629,7 +757,39 @@ Campos típicos de salida:
 
 Los endpoints protegidos requieren API key.
 
-### Opción 1 — Usar una key existente
+### Opción 1 — Solicitar una Free key desde CLI
+
+```bash
+sas request-key --email your@email.com --name "Tu Nombre"
+```
+
+La API key se genera y se envía automáticamente por email.
+
+Free tier por defecto:
+
+```text
+50 requests/día
+```
+
+Límite de solicitud:
+
+```text
+1 Free key por email por día
+```
+
+---
+
+### Opción 2 — Solicitar una Free key con curl
+
+```bash
+curl -X POST https://sas-api.onrender.com/public/request-key \
+  -H "Content-Type: application/json" \
+  -d '{"email": "your@email.com", "name": "Tu Nombre"}'
+```
+
+---
+
+### Opción 3 — Usar una key existente
 
 Pasá la key directamente:
 
@@ -637,10 +797,16 @@ Pasá la key directamente:
 client = SASClient(api_key="YOUR_API_KEY")
 ```
 
-O usá la variable de entorno:
+O usá variable de entorno:
 
 ```bash
 export SAS_API_KEY="YOUR_API_KEY"
+```
+
+Alternativa:
+
+```bash
+export SAS_KEY="YOUR_API_KEY"
 ```
 
 Windows PowerShell:
@@ -659,33 +825,7 @@ client = SASClient()
 
 ---
 
-### Opción 2 — Solicitar una Free key alojada
-
-La API SAS alojada permite generación automática de Free keys:
-
-```bash
-curl -X POST https://sas-api.onrender.com/public/request-key \
-  -H "Content-Type: application/json" \
-  -d '{"email": "your@email.com", "name": "Tu Nombre"}'
-```
-
-La API key se genera y se envía automáticamente por email.
-
-Free tier por defecto:
-
-```text
-50 requests/día
-```
-
-Límite:
-
-```text
-1 Free key por email por día
-```
-
----
-
-### Opción 3 — Pro key mediante pago automático
+### Opción 4 — Pro key mediante pago automático
 
 El acceso Pro alojado está conectado a automatización de pagos mediante:
 
@@ -714,7 +854,7 @@ from sas_client import SASClient
 
 client = SASClient(
     api_key="YOUR_API_KEY",
-    base_url="https://your-sas-instance.example.com"
+    base_url="https://your-sas-instance.example.com",
 )
 ```
 
@@ -728,36 +868,59 @@ sas --base-url https://your-sas-instance.example.com health
 
 ## Uso desde Python
 
-### Health
+### Endpoints públicos
 
 ```python
 from sas_client import SASClient
 
 client = SASClient()
+
 print(client.health())
-```
-
-### Readiness
-
-```python
-from sas_client import SASClient
-
-client = SASClient()
 print(client.readyz())
-```
-
-### Estadísticas públicas y actividad
-
-```python
-from sas_client import SASClient
-
-client = SASClient()
-
 print(client.public_stats())
 print(client.public_activity(limit=10))
 ```
 
-Estos endpoints públicos no requieren API key.
+### Demo pública sin API key
+
+```python
+from sas_client import SASClient
+
+client = SASClient()
+
+result = client.demo_audit(
+    source="The Eiffel Tower is located in Paris, France, and was built in 1889.",
+    response="The Eiffel Tower is located in Berlin, Germany, and was built in 1950.",
+)
+
+print(result["isi"])
+print(result["verdict"])
+```
+
+### Solicitar Free API key
+
+```python
+from sas_client import SASClient
+
+client = SASClient()
+
+result = client.request_key(
+    email="your@email.com",
+    name="Tu Nombre",
+)
+
+print(result)
+```
+
+### Cuenta / plan actual
+
+```python
+from sas_client import SASClient
+
+client = SASClient(api_key="YOUR_API_KEY")
+
+print(client.whoami())
+```
 
 ### Auditar un texto
 
@@ -782,7 +945,7 @@ client = SASClient(api_key="YOUR_API_KEY")
 
 result = client.diff(
     text_a="The Eiffel Tower is located in Paris, France.",
-    text_b="The Eiffel Tower is located in Berlin, Germany."
+    text_b="The Eiffel Tower is located in Berlin, Germany.",
 )
 
 print(result["isi"])
@@ -801,6 +964,15 @@ result = client.chat("Explain κD = 0.56 in one paragraph.")
 print(result)
 ```
 
+### Información estática de planes
+
+```python
+from sas_client import SASClient
+
+client = SASClient()
+print(client.plans())
+```
+
 ---
 
 ## Uso CLI
@@ -814,13 +986,29 @@ sas health
 sas readyz
 sas public-stats
 sas public-activity --limit 10
+sas plans
 ```
+
+### Onboarding público
+
+```bash
+sas request-key --email your@email.com --name "Tu Nombre"
+```
+
+```bash
+sas demo-audit \
+  "The Eiffel Tower is located in Paris, France, and was built in 1889." \
+  "The Eiffel Tower is located in Berlin, Germany, and was built in 1950."
+```
+
+Estos comandos no requieren API key.
 
 ### Comandos autenticados
 
 Para endpoints autenticados, pasá `--api-key` antes del subcomando:
 
 ```bash
+sas --api-key YOUR_API_KEY whoami
 sas --api-key YOUR_API_KEY audit "Paris is the capital of France. The Eiffel Tower is located in Berlin."
 sas --api-key YOUR_API_KEY diff "Python is a programming language." "A python is a snake."
 sas --api-key YOUR_API_KEY chat "Explain κD = 0.56 in one paragraph."
@@ -831,7 +1019,16 @@ O usá `SAS_API_KEY`:
 ```bash
 export SAS_API_KEY="YOUR_API_KEY"
 
+sas whoami
 sas diff "Python is a programming language." "A python is a snake."
+```
+
+O usá `SAS_KEY`:
+
+```bash
+export SAS_KEY="YOUR_API_KEY"
+
+sas whoami
 ```
 
 Windows PowerShell:
@@ -839,6 +1036,7 @@ Windows PowerShell:
 ```powershell
 $env:SAS_API_KEY="YOUR_API_KEY"
 
+sas whoami
 sas diff "Python is a programming language." "A python is a snake."
 ```
 
@@ -859,110 +1057,56 @@ sas --base-url http://localhost:8000 readyz
 | Readiness check | `GET /readyz` | `client.readyz()` | `sas readyz` |
 | Estadísticas públicas | `GET /public/stats` | `client.public_stats()` | `sas public-stats` |
 | Actividad pública | `GET /public/activity` | `client.public_activity(limit=10)` | `sas public-activity --limit 10` |
+| Demo pública | `POST /public/demo/audit` | `client.demo_audit(source, response)` | `sas demo-audit "source" "response"` |
+| Solicitud de Free API key | `POST /public/request-key` | `client.request_key(email, name=None)` | `sas request-key --email you@example.com` |
+| Cuenta / plan actual | `GET /v1/whoami` | `client.whoami()` | `sas whoami` |
 | Auditoría de un texto | `POST /v1/audit` | `client.audit(text)` | `sas audit "text"` |
 | Diff fuente-respuesta | `POST /v1/diff` | `client.diff(text_a, text_b)` | `sas diff "A" "B"` |
 | Chat endpoint | `POST /v1/chat` | `client.chat(message)` | `sas chat "message"` |
+| Información estática de planes | helper local | `client.plans()` | `sas plans` |
 
 ---
 
-## Funciones de la API alojada todavía no envueltas como comandos first-class
+## Estructura de módulos
 
-La API SAS alojada puede exponer endpoints públicos o de billing adicionales como:
-
-| Capacidad alojada | Endpoint | Recomendación actual |
-|---|---|---|
-| Demo pública de auditoría | `POST /public/demo/audit` | Usar `curl` o HTTP directo hasta envolverlo |
-| Solicitud de Free key | `POST /public/request-key` | Usar `curl` hasta envolverlo |
-| Cuenta / plan actual | `GET /v1/whoami` | Usar `curl` hasta envolverlo |
-| Webhook Polar | endpoint alojado de billing | Solo server-side |
-| Webhook Mercado Pago | endpoint alojado de billing | Solo server-side |
-
-Ejemplo:
-
-```bash
-curl -X POST https://sas-api.onrender.com/public/demo/audit \
-  -H "Content-Type: application/json" \
-  -d '{
-    "source": "The Eiffel Tower is located in Paris, France.",
-    "response": "The Eiffel Tower is located in Berlin, Germany."
-  }'
-```
-
-Ejemplo:
-
-```bash
-curl https://sas-api.onrender.com/v1/whoami \
-  -H "X-API-Key: sas_xxxxxxxxxxxxxxxxxxxxx"
-```
-
----
-
-## Próximos comandos recomendados para el cliente
-
-Estas son mejoras recomendadas para la próxima release de `sas-client`.
-
-### Métodos Python propuestos
-
-```python
-client.demo_audit(source, response)
-client.request_key(email, name=None)
-client.whoami()
-client.plans()
-```
-
-### Comandos CLI propuestos
-
-```bash
-sas demo-audit "source text" "response text"
-sas request-key --email your@email.com --name "Your Name"
-sas whoami
-sas plans
-```
-
-### Módulos de conveniencia propuestos
+Módulos de conveniencia actuales:
 
 ```text
-sas_client.auth       # Helpers de API key, carga de env, whoami
-sas_client.public     # Demo pública, stats, activity, readiness
-sas_client.billing    # Helpers/documentación para hosted plans, Polar/Mercado Pago
-sas_client.models     # Modelos tipados / dataclasses
-sas_client.errors     # Excepciones tipadas para errores API
+sas_client.client       # Clase SASClient principal y request handling
+sas_client.public       # Endpoints públicos sin key: demo, stats, activity, request-key
+sas_client.auth         # Resolución de API keys y helpers autenticados
+sas_client.exceptions   # Excepciones tipadas del cliente/API
+sas_client.cli          # Interfaz de línea de comandos
 ```
 
-Comportamiento sugerido:
-
-- `demo-audit` no debería requerir API key.
-- `request-key` no debería requerir API key.
-- `whoami` debería requerir API key.
-- Los webhooks de billing deberían permanecer server-side y no exponerse como comandos de verificación de pago del cliente.
-- El cliente no debería almacenar keys localmente por defecto.
-- Toda configuración local opcional debería ser explícita y documentada.
+No hay dependencias runtime de terceros. El cliente usa la biblioteca estándar de Python.
 
 ---
 
 ## Manejo de errores
 
-Comportamiento recomendado del cliente:
+Python:
 
 ```python
-from sas_client import SASClient, SASClientError
+from sas_client import SASClient
+from sas_client import SASClientError, SASRateLimitError, SASAuthenticationError
 
 client = SASClient(api_key="YOUR_API_KEY")
 
 try:
-    result = client.diff("source", "response")
+    result = client.diff(
+        text_a="source",
+        text_b="response",
+    )
+except SASRateLimitError as exc:
+    print("Rate limit:", exc)
+except SASAuthenticationError as exc:
+    print("Authentication error:", exc)
 except SASClientError as exc:
-    print(exc)
+    print("SAS client error:", exc)
 ```
 
-Comportamiento recomendado de CLI:
-
-```bash
-sas diff "source" "response"
-echo $?
-```
-
-Guía de exit codes para endurecimiento futuro del CLI:
+Exit codes CLI:
 
 | Exit code | Significado |
 |---:|---|
@@ -972,7 +1116,13 @@ Guía de exit codes para endurecimiento futuro del CLI:
 | `3` | Error de autenticación o plan |
 | `4` | Rate limit excedido |
 | `5` | Servidor no disponible |
-| `6` | Error de red |
+
+Ejemplo:
+
+```bash
+sas whoami
+echo $?
+```
 
 ---
 
@@ -989,6 +1139,7 @@ Para endpoints alojados:
 - mantené privadas las API keys;
 - no pegues API keys en logs públicos, capturas, issues de GitHub ni historial de shell;
 - las stats públicas y la actividad pública están diseñadas para exponer solo metadata operacional agregada o anonimizada;
+- el texto de la demo pública es manejado por la política del servicio alojado;
 - la automatización de pagos mediante Polar o Mercado Pago forma parte del servicio SAS alojado, no del paquete cliente local.
 
 ---
@@ -1024,6 +1175,23 @@ Verificar metadata del paquete:
 ```bash
 twine check dist/*
 ```
+
+---
+
+## Release Notes for v0.2.0
+
+Esta release agrega soporte first-class para onboarding y endpoints públicos:
+
+- `sas request-key`
+- `sas demo-audit`
+- `sas whoami`
+- `sas plans`
+- `client.request_key(...)`
+- `client.demo_audit(...)`
+- `client.whoami()`
+- `client.plans()`
+- soporte de `SAS_KEY` además de `SAS_API_KEY`
+- excepciones tipadas para auth, rate limit, servidor, conexión y timeout
 
 ---
 
