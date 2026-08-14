@@ -3,7 +3,7 @@
 <div align="center">
 
 **Official Python client and CLI for SAS — Symbiotic Autoprotection System**  
-**κD = 0.56 · Durante Constant · Structural Coherence Auditing for Generative AI**
+**κD = 0.56 · Operational Threshold · Structural Coherence Auditing**
 
 [![PyPI](https://img.shields.io/pypi/v/sas-client?style=for-the-badge)](https://pypi.org/project/sas-client/)
 [![Python](https://img.shields.io/pypi/pyversions/sas-client?style=for-the-badge)](https://pypi.org/project/sas-client/)
