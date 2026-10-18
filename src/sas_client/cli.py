@@ -82,6 +82,30 @@ def build_parser() -> argparse.ArgumentParser:
     p_chat.add_argument("message", help="Message to send.")
     p_chat.add_argument("--no-experimental", action="store_true", help="Send experimental=false.")
 
+    p_tribunal = sub.add_parser(
+        "tribunal",
+        help="Classify a (source, response) pair using the SAS Multimetric Tribunal v1.1.0.",
+    )
+    p_tribunal.add_argument("source", help="Reference/source text.")
+    p_tribunal.add_argument("response", help="Response/output text to audit.")
+    p_tribunal.add_argument(
+        "--disable-r3-1",
+        action="store_true",
+        help="Disable R3.1 Differential Guard.",
+    )
+    p_tribunal.add_argument(
+        "--kappa-d",
+        type=float,
+        default=None,
+        help="Override κD coherence threshold (default 0.56).",
+    )
+    p_tribunal.add_argument(
+        "--kappa-r",
+        type=float,
+        default=None,
+        help="Override κR collapse threshold (default 0.15).",
+    )
+
     return parser
 
 
@@ -127,6 +151,16 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "chat":
             _print_json(
                 client.chat(args.message, experimental=not args.no_experimental)
+            )
+        elif args.command == "tribunal":
+            _print_json(
+                client.tribunal(
+                    args.source,
+                    args.response,
+                    enable_r3_1=not args.disable_r3_1,
+                    kappa_d=args.kappa_d,
+                    kappa_r=args.kappa_r,
+                )
             )
         else:
             parser.error(f"Unknown command: {args.command}")

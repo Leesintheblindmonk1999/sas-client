@@ -35,7 +35,7 @@ class SASClient(SASPublicMixin, SASAuthMixin):
         base_url: str = DEFAULT_BASE_URL,
         api_key: str | None = None,
         timeout: float = 30.0,
-        user_agent: str = "sas-client-python/0.2.0",
+        user_agent: str = "sas-client-python/0.3.0",
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key = resolve_api_key(api_key)
@@ -154,5 +154,46 @@ class SASClient(SASPublicMixin, SASAuthMixin):
             "POST",
             "/v1/chat",
             payload={"message": message, "experimental": experimental},
+            auth=True,
+        )
+
+    def tribunal(
+        self,
+        source: str,
+        response: str,
+        *,
+        enable_r3_1: bool = True,
+        kappa_d: float | None = None,
+        kappa_r: float | None = None,
+    ) -> dict[str, Any]:
+        """Classify a (source, response) pair through the SAS Multimetric Tribunal v1.1.0.
+
+        POST /v2/audit — 7 detection modules with cascading multiplicative penalty
+        and optional R3.1 Differential Guard.
+
+        Args:
+            source: Reference/source text.
+            response: Response/output text to audit.
+            enable_r3_1: Enable R3.1 Differential Guard (default True).
+            kappa_d: Override κD coherence threshold (default 0.56).
+            kappa_r: Override κR collapse threshold (default 0.15).
+
+        Returns:
+            Tribunal verdict with zona, isi_final, module scores, and R3.1 details.
+        """
+        payload: dict[str, Any] = {
+            "source": source,
+            "response": response,
+            "enable_r3_1": enable_r3_1,
+        }
+        if kappa_d is not None:
+            payload["kappa_d"] = kappa_d
+        if kappa_r is not None:
+            payload["kappa_r"] = kappa_r
+
+        return self._request(
+            "POST",
+            "/v2/audit",
+            payload=payload,
             auth=True,
         )
