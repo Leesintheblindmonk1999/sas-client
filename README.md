@@ -3,7 +3,7 @@
 <div align="center">
 
 **Official Python client and CLI for SAS — Symbiotic Autoprotection System**  
-**κD = 0.56 · Operational Threshold · Structural Coherence Auditing**
+**κD = 0.56 · κR = 0.15 · Structural Coherence Auditing for Generative AI**
 
 [![PyPI](https://img.shields.io/pypi/v/sas-client?style=for-the-badge)](https://pypi.org/project/sas-client/)
 [![Python](https://img.shields.io/pypi/pyversions/sas-client?style=for-the-badge)](https://pypi.org/project/sas-client/)
@@ -11,6 +11,8 @@
 [![SAS API](https://img.shields.io/badge/SAS%20API-online-brightgreen?style=for-the-badge)](https://sas-api.onrender.com)
 [![Landing](https://img.shields.io/badge/Landing-sas--landing-00ffd0?style=for-the-badge)](https://leesintheblindmonk1999.github.io/sas-landing/)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.19702379-blue?style=for-the-badge)](https://doi.org/10.5281/zenodo.19702379)
+[![Qeios](https://img.shields.io/badge/Qeios-10.32388%2FT420IV-purple?style=for-the-badge)](https://www.qeios.com/read/T420IV)
+[![Tribunal](https://img.shields.io/badge/Tribunal-v1.1.0-ffd700?style=for-the-badge)](https://github.com/Leesintheblindmonk1999/sas-multimetric-tribunal)
 
 </div>
 
@@ -31,7 +33,9 @@
 
 ` sas-client ` is the official Python SDK and command-line client for **SAS — Symbiotic Autoprotection System**.
 
-SAS is a structural coherence audit API for generative AI outputs. It evaluates whether a generated response preserves semantic, logical, numerical, and reference-related coherence relative to a source text using the **κD = 0.56** operational threshold and the **Invariant Similarity Index (ISI)**.
+SAS is a structural coherence audit API for generative AI outputs. It evaluates whether a generated response preserves semantic, logical, numerical, and reference-related coherence relative to a source text using the **κD = 0.56** (Durante Constant) and **κR = 0.15** (Recovery Threshold) operational thresholds and the **Invariant Similarity Index (ISI)**.
+
+The **SAS Multimetric Tribunal v1.1.0** is the core classification engine: 7 detection modules with cascading multiplicative penalty, plus an optional R3.1 Differential Guard (F1 0.833 ± 0.0055 on held-out data). It classifies (source, response) pairs into 3 structural zones (Coherent, Recoverable Rupture, Structural Collapse).
 
 The client is designed for:
 
@@ -53,9 +57,11 @@ The client is designed for:
 | API docs | <https://sas-api.onrender.com/docs> |
 | Main SAS repository | <https://github.com/Leesintheblindmonk1999/SAS> |
 | Client repository | <https://github.com/Leesintheblindmonk1999/sas-client> |
+| **Tribunal repository** | **<https://github.com/Leesintheblindmonk1999/sas-multimetric-tribunal>** |
 | Landing page | <https://leesintheblindmonk1999.github.io/sas-landing/> |
 | PyPI package | <https://pypi.org/project/sas-client/> |
 | Zenodo DOI | <https://doi.org/10.5281/zenodo.19702379> |
+| **Qeios paper** | **<https://www.qeios.com/read/T420IV>** |
 
 ---
 
@@ -349,6 +355,36 @@ print(result["kappa_d"])
 print(result["verdict"])
 ```
 
+### Tribunal classification (v0.3.0+)
+
+```python
+from sas_client import SASClient
+
+client = SASClient(api_key="YOUR_API_KEY")
+
+result = client.tribunal(
+    source="The Eiffel Tower is located in Paris, France.",
+    response="The Eiffel Tower is located in Berlin, Germany.",
+)
+
+print(result["zona"])        # e.g. "RUPTURA_RECUPERABLE"
+print(result["isi_final"])   # e.g. 0.49
+print(result["codigo_zona"]) # e.g. "B"
+print(result["modulos_disparados"])
+```
+
+Optional parameters:
+
+```python
+result = client.tribunal(
+    source="...",
+    response="...",
+    enable_r3_1=False,        # Disable R3.1 Differential Guard
+    kappa_d=0.50,             # Override κD threshold
+    kappa_r=0.10,             # Override κR threshold
+)
+```
+
 ### Chat endpoint
 
 ```python
@@ -407,6 +443,7 @@ For authenticated endpoints, pass `--api-key` before the subcommand:
 sas --api-key YOUR_API_KEY whoami
 sas --api-key YOUR_API_KEY audit "Paris is the capital of France. The Eiffel Tower is located in Berlin."
 sas --api-key YOUR_API_KEY diff "Python is a programming language." "A python is a snake."
+sas --api-key YOUR_API_KEY tribunal "The Eiffel Tower is in Paris." "The Eiffel Tower is in Berlin."
 sas --api-key YOUR_API_KEY chat "Explain κD = 0.56 in one paragraph."
 ```
 
@@ -417,6 +454,7 @@ export SAS_API_KEY="YOUR_API_KEY"
 
 sas whoami
 sas diff "Python is a programming language." "A python is a snake."
+sas tribunal "The Eiffel Tower is in Paris." "The Eiffel Tower is in Berlin."
 ```
 
 Or use `SAS_KEY`:
@@ -458,6 +496,7 @@ sas --base-url http://localhost:8000 readyz
 | Current account / plan | `GET /v1/whoami` | `client.whoami()` | `sas whoami` |
 | Single-text audit | `POST /v1/audit` | `client.audit(text)` | `sas audit "text"` |
 | Source-vs-response diff | `POST /v1/diff` | `client.diff(text_a, text_b)` | `sas diff "A" "B"` |
+| **Tribunal classification** | **`POST /v2/audit`** | **`client.tribunal(source, response)`** | **`sas tribunal "A" "B"`** |
 | Chat endpoint | `POST /v1/chat` | `client.chat(message)` | `sas chat "message"` |
 | Static plan info | local client helper | `client.plans()` | `sas plans` |
 
@@ -573,6 +612,16 @@ twine check dist/*
 ```
 
 ---
+
+## Release Notes for v0.3.0
+
+This release adds the SAS Multimetric Tribunal v1.1.0 classification endpoint:
+
+- `client.tribunal(source, response, enable_r3_1, kappa_d, kappa_r)` → `POST /v2/audit`
+- `sas tribunal <source> <response> [--disable-r3-1] [--kappa-d] [--kappa-r]`
+- Full tribunal response: zona, isi_final, 7 module scores, R3.1 guard details
+- Optional R3.1 Differential Guard (enabled by default)
+- Overridable κD (0.56) and κR (0.15) thresholds
 
 ## Release Notes for v0.2.0
 
